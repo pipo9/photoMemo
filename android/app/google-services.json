@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "445494788621",
+    "project_id": "memo-8da3d",
+    "storage_bucket": "memo-8da3d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:445494788621:android:bfa8934cc21093fc3b0b44",
+        "android_client_info": {
+          "package_name": "com.example.photomemo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "445494788621-h792bku0f5ip3kaiu4o7lifac4tm9kp8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8jLqyvWBMZN-GwonagoDBWhRP3JYMNJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "445494788621-h792bku0f5ip3kaiu4o7lifac4tm9kp8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
