@@ -7,7 +7,8 @@ class PhotoMemo {
   String photoURL;
   DateTime timestamp;
   List<dynamic> sharedWith;
-   List<dynamic> imageLabels;
+  List<dynamic> imageLabels;
+  List<dynamic> comments;
 
   PhotoMemo(
     String docID,
@@ -21,6 +22,7 @@ class PhotoMemo {
     this.sharedWith = data['sharedwith'] ?? [];
     this.createdBy = data['createdBy'] ?? "";
     this.imageLabels=data['photoLabels']?? [];
+    this.comments=data['comments']?? [];
   }
 
   static String validateTitle(String value) {

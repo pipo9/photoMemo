@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:photomemo/controller/firebase_auth_controller.dart';
+import 'package:photomemo/controller/speech_controller.dart';
 import 'package:photomemo/controller/firebase_firestore_controller.dart';
 import 'package:photomemo/models/constant.dart';
 import 'package:photomemo/models/photomemo.dart';
@@ -19,9 +20,16 @@ class UserHomeScreen extends StatefulWidget {
 }
 
 class _UserHomeState extends State<UserHomeScreen> {
+  final AiController aiController = new AiController();
+  TextEditingController textEditingController = new TextEditingController();
+  int myMemos = 0;
+  int sharedMemos = 1;
+  List<Color> boxColors = [Colors.transparent, Colors.white];
+  List<Color> textColors = [Colors.white, Colors.black];
   _Controller con;
   User user;
   String searched = '';
+  bool listen = false;
   @override
   void initState() {
     super.initState();
@@ -47,14 +55,13 @@ class _UserHomeState extends State<UserHomeScreen> {
                 horizontal: 2,
               ),
               child: TextField(
-                onChanged: (value){
-
+                onChanged: (value) {
                   setState(() {
-                    searched=value;
+                    searched = value;
                   });
-
                 },
                 cursorColor: Colors.white,
+                controller: textEditingController,
                 style: TextStyle(color: Colors.white),
                 decoration: new InputDecoration(
                   contentPadding: EdgeInsets.only(top: 20, left: width * 0.05),
@@ -74,6 +81,39 @@ class _UserHomeState extends State<UserHomeScreen> {
               ),
             ),
           ),
+          actions: [
+            listen == false
+                ? GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        listen=true;
+                      });
+                      con.listen();
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 15),
+                      child: Icon(
+                        Icons.mic,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                : GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        listen=false;
+                      });
+                      con.stop();
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 15),
+                      child: Icon(
+                        Icons.stop_circle_outlined,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  )
+          ],
         ),
         drawer: Drawer(
           child: ListView(
@@ -102,29 +142,42 @@ class _UserHomeState extends State<UserHomeScreen> {
                 children: [
                   Expanded(
                     child: FlatButton(
+                      padding: EdgeInsets.symmetric(vertical: 20),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      onPressed: () {},
+                      onPressed: () {
+                        setState(() {
+                          myMemos = 0;
+                          sharedMemos = 1;
+                        });
+                      },
                       child: Text(
                         'My memos',
                         style: TextStyle(
+                          color: textColors[myMemos],
                           fontSize: 15,
                         ),
                       ),
+                      color: boxColors[myMemos],
                     ),
                   ),
                   Expanded(
                     child: FlatButton(
                       padding: EdgeInsets.symmetric(vertical: 20),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      onPressed: () {},
+                      onPressed: () {
+                        setState(() {
+                          myMemos = 1;
+                          sharedMemos = 0;
+                        });
+                      },
                       child: Text(
                         'Shared with me',
                         style: TextStyle(
-                          color: Colors.black,
+                          color: textColors[sharedMemos],
                           fontSize: 15,
                         ),
                       ),
-                      color: Colors.white,
+                      color: boxColors[sharedMemos],
                     ),
                   ),
                 ],
@@ -138,12 +191,22 @@ class _UserHomeState extends State<UserHomeScreen> {
                       if (snapshot.connectionState == ConnectionState.active) {
                         List memos = snapshot.data.docs;
                         //TODO : where is the uid ?
-                        memos.removeWhere((memo) =>
-                            memo.data()['createdBy'].compareTo(user.uid) != 0);
+
+                        if (myMemos == 0)
+                          memos.removeWhere((memo) =>
+                              memo.data()['createdBy'].compareTo(user.uid) !=
+                              0);
+
+                        if (myMemos == 1)
+                          memos.removeWhere((memo) => !memo
+                              .data()['sharedwith']
+                              .contains(user.email.toString()));
+
                         memos.removeWhere((memo) {
-                          String categories =
-                              con.loadCategories(memo.data()['photoLabels']).toLowerCase();
-                          return !categories.contains(searched);
+                          String categories = con
+                              .loadCategories(memo.data()['photoLabels'])
+                              .toLowerCase();
+                          return !categories.contains(searched.toLowerCase());
                         });
                         return ListView.builder(
                           itemCount: memos.length,
@@ -175,7 +238,7 @@ class _UserHomeState extends State<UserHomeScreen> {
                         return Text('loading');
                       }
                     }),
-              ),
+              )
             ],
           ),
         ),
@@ -215,5 +278,25 @@ class _Controller {
     }
     Navigator.of(state.context).pop();
     Navigator.of(state.context).pop();
+  }
+
+  void listen() async {
+      bool available = await state.aiController.initSpeechState();
+      if (available) {
+          state.aiController.speech.listen(
+            listenFor: Duration(minutes:1),
+            onResult: (val) =>
+                state.render(() {
+                  state.aiController.text = val.recognizedWords;
+                  state.searched = val.recognizedWords;
+                  state.textEditingController.text = val.recognizedWords;
+                  print(val.recognizedWords);
+                }),
+          );
+
+    }
+  }
+  void stop(){
+    state.aiController.speech.stop();
   }
 }

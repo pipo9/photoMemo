@@ -3,7 +3,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:photomemo/models/constant.dart';
 import 'package:firebase_ml_vision/firebase_ml_vision.dart';
-import 'package:photomemo/models/photomemo.dart';
 class FirebaseStorageController {
   FirebaseVisionImage visionImage;
   List<String>_category=[];

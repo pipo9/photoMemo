@@ -22,9 +22,11 @@ class _MemoDetailsState extends State<MemoDetails> {
   File updatedPhoto;
   String progressMessage;
   User user;
-  bool checked=false;
+  bool checked = false;
   String categories;
-  TextEditingController textEditingController=new TextEditingController();
+  String commentText;
+  TextEditingController textEditingController = new TextEditingController();
+  TextEditingController textCommentController = new TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -40,37 +42,42 @@ class _MemoDetailsState extends State<MemoDetails> {
     Map<String, dynamic> args = ModalRoute.of(context).settings.arguments;
     PhotoMemo memo = args['memoItem'];
     user ??= args[Constant.ARG_USER];
+    double width = MediaQuery.of(context).size.width;
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
           title: Text('PhotoMemo details'),
-          actions: [
-            IconButton(
-              icon: enabeled == false ? Icon(Icons.edit) : Icon(Icons.check),
-              onPressed: () {
-                if (enabeled) {
-                  con.updateMemo(memo);
-                }
-                setState(() {
-                  enabeled = !enabeled;
-                });
-              },
-            ),
-            IconButton(
-              onPressed: () {
-                MyDialog.alert(
-                    context: context,
-                    title: "Are you sure you want to delete this memo ?",
-                    action: () {
-                      con.delete(memo, context);
-                    });
-              },
-              icon: Icon(
-                Icons.delete,
-                color: Colors.red,
-              ),
-            ),
-          ],
+          actions: memo.createdBy == con.currentUser()
+              ? [
+                  IconButton(
+                    icon: enabeled == false
+                        ? Icon(Icons.edit)
+                        : Icon(Icons.check),
+                    onPressed: () {
+                      if (enabeled) {
+                        con.updateMemo(memo);
+                      }
+                      setState(() {
+                        enabeled = !enabeled;
+                      });
+                    },
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      MyDialog.alert(
+                          context: context,
+                          title: "Are you sure you want to delete this memo ?",
+                          action: () {
+                            con.delete(memo, context);
+                          });
+                    },
+                    icon: Icon(
+                      Icons.delete,
+                      color: Colors.red,
+                    ),
+                  ),
+                ]
+              : [],
         ),
         body: SingleChildScrollView(
           child: Form(
@@ -249,18 +256,22 @@ class _MemoDetailsState extends State<MemoDetails> {
                           con.saveSharedWith(memo, value);
                         },
                       ),
-                      CheckboxListTile(
-                        title: Text("Label image",style: TextStyle(color: Colors.black),),
-                        value: checked,
-                        checkColor: Colors.black,
-                        onChanged: (newValue) {
-                          setState(() {
-                            if(enabeled ==true)
-                            checked = newValue;
-                          });
-                        },
-                        controlAffinity: ListTileControlAffinity.leading,
-                      ),
+                      memo.createdBy == con.currentUser()
+                          ? CheckboxListTile(
+                              title: Text(
+                                "Label image",
+                                style: TextStyle(color: Colors.black),
+                              ),
+                              value: checked,
+                              checkColor: Colors.black,
+                              onChanged: (newValue) {
+                                setState(() {
+                                  if (enabeled == true) checked = newValue;
+                                });
+                              },
+                              controlAffinity: ListTileControlAffinity.leading,
+                            )
+                          : SizedBox(),
                       SizedBox(height: 13),
                       TextFormField(
                         enabled: checked,
@@ -282,7 +293,8 @@ class _MemoDetailsState extends State<MemoDetails> {
                               color: Colors.black,
                             ),
                           ),
-                          hintText: categories??con.loadCategories(memo.imageLabels),
+                          hintText: categories ??
+                              con.loadCategories(memo.imageLabels),
                           hintStyle: TextStyle(
                             color: Colors.grey[800],
                           ),
@@ -296,6 +308,128 @@ class _MemoDetailsState extends State<MemoDetails> {
                           con.saveLabels(memo, value);
                         },
                       ),
+                      SizedBox(height: 26),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Comment Section",
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
+                        ),
+                      ),
+                      SizedBox(height: 13),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: textCommentController,
+                              decoration: InputDecoration(
+                                labelText: 'comment',
+                                labelStyle: TextStyle(
+                                  color: Colors.grey[800],
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15.0),
+                                  borderSide: BorderSide(
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15.0),
+                                  borderSide: BorderSide(
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                hintText: 'type something ...',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              style: TextStyle(
+                                color: Colors.black,
+                              ),
+                              maxLines: null,
+                              onChanged: (value) {
+                                setState(() {
+                                  commentText = value;
+                                });
+                              },
+                            ),
+                          ),
+                          IconButton(
+                              onPressed: () {
+                                MyDialog.alert(
+                                    context: context,
+                                    title: "the comment will be anonymous\nOnly post owner can delete comments",
+                                    action: () {
+                                      setState(() {
+                                        con.saveComment(memo, commentText);
+                                      });
+                                      Navigator.pop(context);
+                                      textCommentController.clear();
+                                    });
+
+
+                              },
+                              icon: Icon(
+                                Icons.send,
+                                color: Colors.black,
+                              ))
+                        ],
+                      ),
+                      SizedBox(height: 13),
+                      Column(
+                        children: [
+                          for (var index=0;index<memo.comments.length;index++)
+                            Container(
+                                margin: EdgeInsets.only(bottom: 13),
+                                width: width,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                      Text(
+                                        memo.comments[index],
+                                        style: TextStyle(
+                                            color: Colors.black, fontSize: 15),
+                                      ),
+                                      memo.createdBy == con.currentUser()
+                                          ? GestureDetector(
+                                              onTap: () {
+                                                MyDialog.alert(
+                                                    context: context,
+                                                    title: "want to delete this comment ?",
+                                                    action: () {
+                                                      setState(() {
+                                                        con.deleteComment(memo,index);
+                                                      });
+                                                      Navigator.pop(context);
+                                                    });
+                                              },
+                                              child: Text(
+                                                "X",
+                                                style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontSize: 15),
+                                              ),
+                                            )
+                                          : SizedBox(),
+                                    ]),
+                                    Padding(
+                                      padding: EdgeInsets.only(top: 13),
+                                      child: Container(
+                                        height: 0.3,
+                                        width: width,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  ],
+                                )),
+                        ],
+                      )
                     ],
                   ),
                 ),
@@ -317,7 +451,8 @@ class _Controller {
     state.formKey.currentState.save();
     MyDialog.circularProgressStart(state.context);
     if (state.updatedPhoto != null) {
-      FirebaseStorageController  firebaseStorageController=new FirebaseStorageController();
+      FirebaseStorageController firebaseStorageController =
+          new FirebaseStorageController();
       Map photoInfo = await firebaseStorageController.uploadPhotoFile(
         photo: state.updatedPhoto,
         uid: memo.createdBy,
@@ -364,6 +499,7 @@ class _Controller {
           value.split(RegExp('(,| )+')).map((e) => e.trim()).toList();
     }
   }
+
   String loadSharedWith(List sharedWith) {
     String listToString = "";
     for (var i = 0; i < sharedWith.length; i++) {
@@ -374,16 +510,26 @@ class _Controller {
     }
     return listToString;
   }
-  void saveLabels(PhotoMemo memo,String value) {
+
+  void saveLabels(PhotoMemo memo, String value) {
     if (value.trim().length != 0) {
       memo.imageLabels =
           value.split(RegExp('(,| )+')).map((e) => e.trim()).toList();
     }
-    print(memo.imageLabels);
   }
 
+  void saveComment(PhotoMemo memo, String value) async {
+    if (value.trim().length != 0) {
+      memo.comments.add(value);
+      await FirebaseFirestoreController.updateComments(memo.docID, memo);
+    }
+  }
+  void deleteComment(PhotoMemo memo, i) async {
+      memo.comments.removeAt(i);
+      await FirebaseFirestoreController.updateComments(memo.docID, memo);
+  }
 
-  String loadCategories(List categories){
+  String loadCategories(List categories) {
     String listToString = "";
     for (var i = 0; i < categories.length; i++) {
       listToString += categories[i].toString();
@@ -391,8 +537,8 @@ class _Controller {
         listToString += ", ";
       }
     }
-    state.render((){
-      state.textEditingController.text=listToString;
+    state.render(() {
+      state.textEditingController.text = listToString;
     });
     return listToString;
   }
@@ -408,6 +554,10 @@ class _Controller {
     }
   }
 
+  currentUser() {
+    return FirebaseAuth.instance.currentUser.uid;
+  }
+
   void updatePhoto(String src) async {
     try {
       PickedFile _imageFile;
@@ -419,11 +569,13 @@ class _Controller {
       }
       if (_imageFile == null) return;
       state.render(() => state.updatedPhoto = File(_imageFile.path));
-      FirebaseStorageController  firebaseStorageController=new FirebaseStorageController();
-      List<String> cat=await firebaseStorageController.labelimage(state.updatedPhoto);
-      state.render((){
-        state.categories=loadCategories(cat);
-        state.textEditingController.text=state.categories;
+      FirebaseStorageController firebaseStorageController =
+          new FirebaseStorageController();
+      List<String> cat =
+          await firebaseStorageController.labelimage(state.updatedPhoto);
+      state.render(() {
+        state.categories = loadCategories(cat);
+        state.textEditingController.text = state.categories;
       });
     } catch (e) {
       MyDialog.info(

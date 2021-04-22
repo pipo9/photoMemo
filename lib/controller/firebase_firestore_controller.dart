@@ -36,7 +36,13 @@ class FirebaseFirestoreController {
       'sharedwith': newmemo.sharedWith,
       'imgurl': newmemo.photoURL,
       'imgname': newmemo.photoFilename,
-      'photoLabels':newmemo.imageLabels
+      'photoLabels':newmemo.imageLabels,
+    });
+  }
+
+static Future<void> updateComments(docId, PhotoMemo newmemo) async {
+    await FirebaseFirestore.instance.collection('mymemos').doc(docId).update({
+      'comments':newmemo.comments
     });
   }
 }
